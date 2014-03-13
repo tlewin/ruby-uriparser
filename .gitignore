@@ -1,0 +1,8 @@
+*.bundle
+*.dylib
+*.so
+*.o
+*.gem
+.DS_Store
+Gemfile.lock
+tmp/**
