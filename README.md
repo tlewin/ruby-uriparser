@@ -1,4 +1,4 @@
-# rupy-uriparser
+# ruby-uriparser
 
 Ruby-uriparser is a wrapper for [uriparser](http://uriparser.sourceforge.net/) C library which is fast (linear input length time complexity), approximatelly 7.5x faster than the standard ruby URI library with a low memory consumption.
 
@@ -42,10 +42,14 @@ If you are on Mac OS X just run `brew install uriparser`.
 
 ## License
 
-This project includes code from the New BSD licensed:
-Copyright (C) 2007, Weijia Song <songweijia@gmail.com>
-Copyright (C) 2007, Sebastian Pipping <webmaster@hartwork.org>
-All rights reserved.
-
 This project is released under the MIT license (See LICENSE file).
+
 Copyright (c) 2014 Thiago Lewin - http://github.com/tlewin
+
+## Third party libraries
+
+This project includes code from the New BSD licensed:
+* Copyright (C) 2007, Weijia Song <songweijia@gmail.com>
+* Copyright (C) 2007, Sebastian Pipping <webmaster@hartwork.org>
+
+All rights reserved.
