@@ -189,7 +189,7 @@ void
 Init_uriparser_ext()
 {
   rb_mUriParser = rb_define_module("UriParser");
-  rb_cUri_Class = rb_define_class_under(rb_mUriParser, "Generic", rb_cObject);
+  rb_cUri_Class = rb_define_class_under(rb_mUriParser, "URI", rb_cObject);
   
   rb_define_alloc_func(rb_cUri_Class, rb_uriparser_s_allocate);
   rb_define_method(rb_cUri_Class, "initialize", rb_uriparser_initialize, 0);
