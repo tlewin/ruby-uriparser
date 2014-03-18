@@ -5,41 +5,41 @@
 #define URI_TEXT_RANGE(uri_ptr, uri_field) ((uri_ptr->uri_field.afterLast == uri_ptr->uri_field.first) ? Qnil :  \
     rb_str_new(uri_ptr->uri_field.first, uri_ptr->uri_field.afterLast - uri_ptr->uri_field.first))
 
-#define RB_URIPARSER_ATTR_READER(attribute, original) \
-    static VALUE \
-    rb_uriparser_get_##attribute(VALUE self) \
-    { \
-      struct uri_data *data; \
-    \
-      /* lazy load */ \
-      Data_Get_Struct(self, struct uri_data, data); \
-      if(RB_TYPE_P(data->attribute, T_UNDEF)) { \
-        if(data->uri) { \
-          data->attribute = URI_TEXT_RANGE(data->uri, original); \
-        } else { \
-          data->attribute = Qnil; \
-        } \
-      } \
-    \
-      return data->attribute; \
+#define RB_URIPARSER_ATTR_READER(attribute, original)             \
+    static VALUE                                                  \
+    rb_uriparser_get_##attribute(VALUE self)                      \
+    {                                                             \
+      struct uri_data *data;                                      \
+                                                                  \
+      /* lazy load */                                             \
+      Data_Get_Struct(self, struct uri_data, data);               \
+      if(RB_TYPE_P(data->attribute, T_UNDEF)) {                   \
+        if(data->uri) {                                           \
+          data->attribute = URI_TEXT_RANGE(data->uri, original);  \
+        } else {                                                  \
+          data->attribute = Qnil;                                 \
+        }                                                         \
+      }                                                           \
+                                                                  \
+      return data->attribute;                                     \
     }
 
-#define RB_URIPARSER_ATTR_WRITER(attribute) \
-    static VALUE \
-    rb_uriparser_set_##attribute(VALUE self, VALUE attribute) \
-    { \
-      VALUE old; \
-      struct uri_data *data; \
-    \
-      Data_Get_Struct(self, struct uri_data, data);  \
-      old = data->attribute; \
-      data->attribute = StringValue(attribute); \
-      rb_gc_mark(old); \
-      return data->attribute; \
+#define RB_URIPARSER_ATTR_WRITER(attribute)                       \
+    static VALUE                                                  \
+    rb_uriparser_set_##attribute(VALUE self, VALUE attribute)     \
+    {                                                             \
+      VALUE old;                                                  \
+      struct uri_data *data;                                      \
+                                                                  \
+      Data_Get_Struct(self, struct uri_data, data);               \
+      old = data->attribute;                                      \
+      data->attribute = StringValue(attribute);                   \
+      rb_gc_mark(old);                                            \
+      return data->attribute;                                     \
     } 
 
-#define RB_URIPARSER_ATTR_ACCESSOR(attribute, original)  \
-    RB_URIPARSER_ATTR_READER(attribute, original); \
+#define RB_URIPARSER_ATTR_ACCESSOR(attribute, original)           \
+    RB_URIPARSER_ATTR_READER(attribute, original);                \
     RB_URIPARSER_ATTR_WRITER(attribute);
 
 /* Parser structure reused across requests */
