@@ -1,5 +1,7 @@
 # ruby-uriparser
 
+[![Gem Version](https://badge.fury.io/rb/ruby-uriparser.png)](http://badge.fury.io/rb/ruby-uriparser)
+
 Ruby-uriparser is a wrapper for [uriparser](http://uriparser.sourceforge.net/) C library which is fast (linear input length time complexity), approximatelly 7.5x faster than the standard ruby URI library with a low memory consumption.
 
 It is a fairly reasonable hypothesis to consider that __all__ Ruby Rack applications will call, at least once, the `URI.parse` method for each http request, so this simple optimization can bring a significant impact on a high load environment. (See Benchmark)
@@ -17,16 +19,18 @@ If you want to override the URI class just include the following line in your co
 
 ## Benchmark
 
-The following numbers were computed for 10,000 `URI.parse` calls using the ruby benchmark library in a Mac OS X (10.8.5)/ 2.9Ghz Intel Core I5/ 8GB 1600 MHz DDR3 machine:
+The following numbers were computed for 100,000 `URI.parse` calls using the ruby benchmark library in a Mac OS X (10.8.5)/ 2.9Ghz Intel Core I5/ 8GB 1600 MHz DDR3 machine:
 
-    Rehearsal ----------------------------------------------
-    URI          0.080000   0.000000   0.080000 (  0.075157)
-    UriParser    0.010000   0.000000   0.010000 (  0.009013)
-    ------------------------------------- total: 0.090000sec
+    Rehearsal ------------------------------------------------
+    URI            0.750000   0.000000   0.750000 (  0.750619)
+    UriParser      0.110000   0.010000   0.120000 (  0.111885)
+    Addressable    1.880000   0.000000   1.880000 (  1.886091)
+    --------------------------------------- total: 2.750000sec
 
-                     user     system      total        real
-    URI          0.070000   0.000000   0.070000 (  0.073731)
-    UriParser    0.000000   0.000000   0.000000 (  0.006310)
+                       user     system      total        real
+    URI            0.730000   0.000000   0.730000 (  0.728169)
+    UriParser      0.110000   0.000000   0.110000 (  0.107235)
+    Addressable    1.870000   0.000000   1.870000 (  1.863334)
 
 ## Installation
 
