@@ -75,7 +75,7 @@ struct uri_data {
 static void reset_fields(struct uri_data *);
 static void populate_fields(VALUE uri);
 static VALUE compose_uri_from_data(struct uri_data *);
-static int parse_uri(char *, UriUriA *);
+static int parse_uri(const char *, UriUriA *);
 static void free_uri(UriUriA *);
 
 static void
@@ -318,7 +318,7 @@ compose_uri_from_data(struct uri_data *data)
 }
 
 static int
-parse_uri(char *str_uri, UriUriA *uri) 
+parse_uri(const char *str_uri, UriUriA *uri) 
 {
   uri_parse_state.uri = uri;
   
