@@ -1,3 +1,4 @@
+$LOAD_PATH.push File.expand_path(File.dirname(__FILE__))
 require 'uriparser_ext'
 
 module UriParser
@@ -11,16 +12,24 @@ module UriParser
     end
 
     def port=value
-      @port     = value.to_i
-      str_port  = value
+      @port         = value.to_i
+      self.str_port = (value.nil? ? nil : value.to_s)
     end
 
     def user
-      userinfo.split(':').first
+      if userinfo
+        userinfo.split(':').first
+      else
+        nil
+      end
     end
 
     def password
-      userinfo.split(':')[1]
+      if userinfo
+        userinfo.split(':')[1]
+      else
+        nil
+      end
     end
   end
 end
