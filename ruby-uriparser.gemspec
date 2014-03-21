@@ -11,7 +11,10 @@ Gem::Specification.new do |s|
   s.summary       = 'Ruby wrapper for uriparser C library'
   s.description   = s.summary
   s.require_paths = ['lib']
-  s.files         = Dir['**/*'] - ['ruby-uriparser-0.0.1.gem']
+  s.files         = Dir['LICENSE', 'README.md', 'Gemfile', 'Rakefile', 'lib/**/*rb', 'ext/**/*'].select! {|item| !File.directory?(item)}
+  s.test_files    = Dir['test/**/*']
   s.extensions    = ["ext/uriparser_ext/extconf.rb"]
   s.license       = 'MIT'
+
+  s.add_development_dependency 'shoulda', '~> 3.5', '>= 3.5.0'
 end
