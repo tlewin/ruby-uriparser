@@ -2,6 +2,10 @@
 #include <ruby.h>
 #include <uriparser/Uri.h>
 
+#define FALSE 0
+#define TRUE 1
+typedef char bool;
+
 #define URI_TEXT_RANGE(uri_ptr, uri_field) ((uri_ptr->uri_field.afterLast == uri_ptr->uri_field.first) ? Qnil :  \
     rb_str_new(uri_ptr->uri_field.first, uri_ptr->uri_field.afterLast - uri_ptr->uri_field.first))
 
@@ -33,14 +37,22 @@
                                                                   \
       Data_Get_Struct(self, struct uri_data, data);               \
       old = data->attribute;                                      \
-      data->attribute = StringValue(attribute);                   \
+      if(NIL_P(attribute)) {                                      \
+        data->attribute = Qnil;                                   \
+      } else {                                                    \
+        data->attribute = StringValue(attribute);                 \
+      }                                                           \
+      data->updated = TRUE;                                       \
       rb_gc_mark(old);                                            \
+                                                                  \
       return data->attribute;                                     \
     } 
 
 #define RB_URIPARSER_ATTR_ACCESSOR(attribute, original)           \
     RB_URIPARSER_ATTR_READER(attribute, original);                \
     RB_URIPARSER_ATTR_WRITER(attribute);
+
+#define VALID_TYPE(v) (!(NIL_P(v) || RB_TYPE_P(v, T_UNDEF)))
 
 /* Parser structure reused across requests */
 static UriParserStateA uri_parse_state; 
@@ -49,17 +61,22 @@ static VALUE rb_cUri_Class;
 
 struct uri_data {
   UriUriA *uri; /* Parsed URI data */
+  bool updated; /* flag if any field was updated */
   VALUE scheme;
   VALUE userinfo;
-  VALUE password;
   VALUE host;
   VALUE str_port;
   VALUE path;
   VALUE query;
-  VALUE opaque;
-  VALUE registry;
   VALUE fragment;
 };
+
+/* Helper methods prototypes */
+static void reset_fields(struct uri_data *);
+static void populate_fields(VALUE uri);
+static VALUE compose_uri_from_data(struct uri_data *);
+static int parse_uri(char *, UriUriA *);
+static void free_uri(UriUriA *);
 
 static void
 rb_uriparser_mark(void *p)
@@ -67,16 +84,7 @@ rb_uriparser_mark(void *p)
   struct uri_data *ptr = p;
   
   if (ptr) {
-    rb_gc_mark(ptr->scheme);
-    rb_gc_mark(ptr->userinfo);
-    rb_gc_mark(ptr->password);
-    rb_gc_mark(ptr->host);
-    rb_gc_mark(ptr->str_port);
-    rb_gc_mark(ptr->path);
-    rb_gc_mark(ptr->query);
-    rb_gc_mark(ptr->opaque);
-    rb_gc_mark(ptr->registry);
-    rb_gc_mark(ptr->fragment);
+    reset_fields(ptr);
   }
 }
 
@@ -86,8 +94,7 @@ rb_uriparser_free(void *p)
   struct uri_data *ptr = p;
   
   if(ptr) {
-    uriFreeUriMembersA(ptr->uri);
-    xfree(ptr->uri);
+    free_uri(ptr->uri);
     xfree(ptr);
   }
 }
@@ -99,18 +106,16 @@ rb_uriparser_s_allocate(VALUE klass)
 
   if(data) {
     data->uri       = NULL;
+    data->updated   = FALSE;
     data->scheme    = Qundef;
     data->userinfo  = Qundef;
-    data->password  = Qundef;
     data->host      = Qundef;
     data->str_port  = Qundef;
     data->path      = Qundef;
     data->query     = Qundef;
-    data->opaque    = Qundef;
-    data->registry  = Qundef;
     data->fragment  = Qundef;
   } else {
-    rb_raise(rb_eRuntimeError, "unable to create UriParser::Generic class");
+    rb_raise(rb_eRuntimeError, "unable to create UriParser::URI class");
   }
 
   return Data_Wrap_Struct(klass, rb_uriparser_mark, rb_uriparser_free, data);
@@ -119,7 +124,7 @@ rb_uriparser_s_allocate(VALUE klass)
 static VALUE
 rb_uriparser_s_parse(VALUE klass, VALUE uri_obj)
 {
-  char *uri_str = StringValueCStr(uri_obj);
+  char *str_uri = StringValueCStr(uri_obj);
   UriUriA *uri = ALLOC(UriUriA);
   struct uri_data *data;
   VALUE generic_uri;
@@ -128,11 +133,11 @@ rb_uriparser_s_parse(VALUE klass, VALUE uri_obj)
   Data_Get_Struct(generic_uri, struct uri_data, data);
 
   data->uri = uri;
-  uri_parse_state.uri = uri;
-  if(uriParseUriA(&uri_parse_state, uri_str) != URI_SUCCESS) {
-    rb_raise(rb_eStandardError, "unable to parse the URI");
-  }
 
+  if(parse_uri(str_uri, uri) != URI_SUCCESS) {
+    rb_raise(rb_eStandardError, "unable to parse the URI: %s", str_uri);
+  }
+  
   return generic_uri;
 }
 
@@ -185,6 +190,150 @@ rb_uriparser_get_path(VALUE self)
   return data->path;
 }
 
+/* TODO: Include option mask */
+static VALUE
+rb_uriparser_normalize_bang(VALUE self)
+{
+  struct uri_data *data;
+  
+  Data_Get_Struct(self, struct uri_data, data);
+  if(!data->uri || data->updated) {
+    if(data->updated) {
+      populate_fields(self);
+    }
+    /* Compute and parse the new URI */
+    VALUE new_uri = compose_uri_from_data(data);
+    UriUriA *uri = ALLOC(UriUriA);
+
+    if(parse_uri(StringValueCStr(new_uri), uri) != URI_SUCCESS) {
+      free_uri(uri);
+      rb_gc_mark(new_uri);
+      rb_raise(rb_eStandardError, "invalid URI (%s) to normalize", StringValueCStr(new_uri));
+    }
+
+    free_uri(data->uri);
+    rb_gc_mark(new_uri);
+    data->uri = uri;
+  }
+
+  if(uriNormalizeSyntaxA(data->uri) != URI_SUCCESS) {
+    rb_raise(rb_eStandardError, "unable to normalize the URI");
+  } 
+  /* Invalidate any previous field value */
+  reset_fields(data);
+  
+  return self;
+}
+
+static VALUE
+rb_uriparser_escape(VALUE self)
+{
+  return Qnil;
+}
+
+static VALUE
+rb_uriparser_unescape(VALUE self)
+{
+  return Qnil;
+}
+
+static void
+reset_fields(struct uri_data *data) 
+{
+  data->updated = FALSE;
+  
+  rb_gc_mark(data->scheme);
+  data->scheme = Qundef;
+  
+  rb_gc_mark(data->userinfo);
+  data->userinfo = Qundef;
+
+  rb_gc_mark(data->host);
+  data->host = Qundef;
+  
+  rb_gc_mark(data->str_port);
+  data->str_port = Qundef;
+  
+  rb_gc_mark(data->path);
+  data->path = Qundef;
+  
+  rb_gc_mark(data->query);
+  data->query = Qundef;
+  
+  rb_gc_mark(data->fragment);
+  data->fragment = Qundef;
+}
+
+static void
+populate_fields(VALUE uri) 
+{
+  rb_uriparser_get_scheme(uri);
+  rb_uriparser_get_userinfo(uri);
+  rb_uriparser_get_host(uri);
+  rb_uriparser_get_str_port(uri);
+  rb_uriparser_get_path(uri);
+  rb_uriparser_get_query(uri);
+  rb_uriparser_get_fragment(uri);
+}
+
+static VALUE
+compose_uri_from_data(struct uri_data *data) 
+{
+  VALUE str_uri = rb_str_new2("");
+
+  if(VALID_TYPE(data->scheme)) {
+    rb_str_cat2(str_uri, StringValueCStr(data->scheme));
+    rb_str_cat2(str_uri, "://");
+  }
+
+  if(VALID_TYPE(data->userinfo)) {
+    rb_str_cat2(str_uri, StringValueCStr(data->userinfo));
+    rb_str_cat2(str_uri, "@");
+  }
+
+  if(VALID_TYPE(data->host)) {
+    rb_str_cat2(str_uri, StringValueCStr(data->host));
+  }
+
+  if(VALID_TYPE(data->str_port)) {
+    rb_str_cat2(str_uri, ":");
+    rb_str_cat2(str_uri, StringValueCStr(data->str_port));
+  }
+
+  if(VALID_TYPE(data->path)) {
+    rb_str_cat2(str_uri, StringValueCStr(data->path));
+  }
+
+  if(VALID_TYPE(data->query)) {
+    rb_str_cat2(str_uri, "?");
+    rb_str_cat2(str_uri, StringValueCStr(data->query));
+  }
+
+  if(VALID_TYPE(data->fragment)) {
+    rb_str_cat2(str_uri, "#");
+    rb_str_cat2(str_uri, StringValueCStr(data->fragment));
+  }
+
+  return str_uri;
+}
+
+static int
+parse_uri(char *str_uri, UriUriA *uri) 
+{
+  uri_parse_state.uri = uri;
+  
+  return uriParseUriA(&uri_parse_state, str_uri);
+}
+
+static void 
+free_uri(UriUriA *uri)
+{
+  if(uri) {
+    uriFreeUriMembersA(uri);
+    xfree(uri);
+  }
+}
+
 void
 Init_uriparser_ext()
 {
@@ -208,7 +357,9 @@ Init_uriparser_ext()
   rb_define_method(rb_cUri_Class, "fragment", rb_uriparser_get_fragment, 0);
   rb_define_method(rb_cUri_Class, "fragment=", rb_uriparser_set_fragment, 1);
 
-  /* TODO: include opaque and registry methods */
+  rb_define_method(rb_cUri_Class, "normalize!", rb_uriparser_normalize_bang, 0);
+  rb_define_method(rb_cUri_Class, "escape", rb_uriparser_escape, 0);
+  rb_define_method(rb_cUri_Class, "unescape", rb_uriparser_unescape, 0);
 
   rb_define_singleton_method(rb_mUriParser, "parse", rb_uriparser_s_parse, 1);
 }
