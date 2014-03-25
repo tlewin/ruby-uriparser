@@ -73,10 +73,11 @@ struct uri_data {
 
 /* Helper methods prototypes */
 static void reset_fields(struct uri_data *);
-static void populate_fields(VALUE uri);
+static void populate_fields(VALUE);
 static VALUE compose_uri_from_data(struct uri_data *);
 static int parse_uri(const char *, UriUriA *);
 static void free_uri(UriUriA *);
+static UriUriA* update_uri(VALUE);
 
 static void
 rb_uriparser_mark(void *p)
@@ -197,25 +198,8 @@ rb_uriparser_normalize_bang(VALUE self)
   struct uri_data *data;
   
   Data_Get_Struct(self, struct uri_data, data);
-  if(!data->uri || data->updated) {
-    if(data->updated) {
-      populate_fields(self);
-    }
-    /* Compute and parse the new URI */
-    VALUE new_uri = compose_uri_from_data(data);
-    UriUriA *uri = ALLOC(UriUriA);
-
-    if(parse_uri(StringValueCStr(new_uri), uri) != URI_SUCCESS) {
-      free_uri(uri);
-      rb_gc_mark(new_uri);
-      rb_raise(rb_eStandardError, "invalid URI (%s) to normalize", StringValueCStr(new_uri));
-    }
-
-    free_uri(data->uri);
-    rb_gc_mark(new_uri);
-    data->uri = uri;
-  }
-
+  update_uri(self);
+  
   if(uriNormalizeSyntaxA(data->uri) != URI_SUCCESS) {
     rb_raise(rb_eStandardError, "unable to normalize the URI");
   } 
@@ -235,6 +219,25 @@ static VALUE
 rb_uriparser_unescape(VALUE self)
 {
   return Qnil;
+}
+
+static VALUE
+rb_uriparser_to_s(VALUE self)
+{
+  int chars_required;
+  char *str_uri;
+  UriUriA *uri = update_uri(self);
+  VALUE obj_str_uri;
+  
+  if(uriToStringCharsRequiredA(uri, &chars_required) != URI_SUCCESS ||
+      !(str_uri = ALLOC_N(char, ++chars_required)) ||
+      uriToStringA(str_uri, uri, chars_required, NULL) != URI_SUCCESS) {
+    rb_raise(rb_eStandardError, "unable to convert to string");
+  }
+
+  obj_str_uri = rb_str_new2(str_uri);
+  xfree(str_uri);
+  return obj_str_uri;
 }
 
 static void
@@ -334,6 +337,37 @@ free_uri(UriUriA *uri)
   }
 }
 
+static UriUriA *
+update_uri(VALUE uri_obj)
+{
+  struct uri_data *data;
+
+  Data_Get_Struct(uri_obj, struct uri_data, data);
+  if(!data->uri || data->updated) {
+    VALUE new_uri;
+    UriUriA *uri = ALLOC(UriUriA);
+    
+    if(data->updated) {
+      populate_fields(uri_obj);
+    }
+    /* Compute and parse the new URI */
+    new_uri = compose_uri_from_data(data);
+
+    if(parse_uri(StringValueCStr(new_uri), uri) != URI_SUCCESS) {
+      free_uri(uri);
+      rb_gc_mark(new_uri);
+      rb_raise(rb_eStandardError, "invalid URI (%s) to normalize", StringValueCStr(new_uri));
+    }
+
+    free_uri(data->uri);
+    rb_gc_mark(new_uri);
+    data->uri = uri;
+  }
+
+  return data->uri;
+}
+
+
 void
 Init_uriparser_ext()
 {
@@ -360,6 +394,7 @@ Init_uriparser_ext()
   rb_define_method(rb_cUri_Class, "normalize!", rb_uriparser_normalize_bang, 0);
   rb_define_method(rb_cUri_Class, "escape", rb_uriparser_escape, 0);
   rb_define_method(rb_cUri_Class, "unescape", rb_uriparser_unescape, 0);
+  rb_define_method(rb_cUri_Class, "to_s", rb_uriparser_to_s, 0);
 
   rb_define_singleton_method(rb_mUriParser, "parse", rb_uriparser_s_parse, 1);
 }

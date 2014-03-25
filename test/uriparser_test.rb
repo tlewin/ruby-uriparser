@@ -82,6 +82,13 @@ class UriParserTest < Test::Unit::TestCase
       @full_uri.port = 1
       assert_equal @full_uri.str_port, '1'
     end
+
+    should 'convert to string (to_s)' do
+      assert_equal @simple_uri.to_s, SIMPLE_URI
+      assert_equal @full_uri.to_s, FULL_URI
+      assert_equal @manual_uri.to_s, 'http://example.org/one/two/../#test'
+      assert_equal @weird_path_uri.to_s, WEIRD_PATH_URI
+    end
   end
 
   context 'URI normalizing' do
@@ -123,6 +130,13 @@ class UriParserTest < Test::Unit::TestCase
       assert_equal uri.path,      '/one'
       assert_equal uri.query,     nil
       assert_equal uri.fragment,  'test'
+    end
+
+    should 'update URI string representation' do
+      @weird_path_uri.normalize!
+      @manual_uri.normalize!
+      assert_equal @weird_path_uri.to_s, 'http://example.org/one'
+      assert_equal @manual_uri.to_s, 'http://example.org/one/#test'
     end
   end
 end
