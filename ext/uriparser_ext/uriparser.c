@@ -170,14 +170,9 @@ rb_uriparser_get_path(VALUE self)
         UriPathSegmentA *path_segment = data->uri->pathHead;
         data->path = rb_str_new("/", 1);
         do { /* go through the linked list */ 
-          /* check if there is a slash to add */
-          if(*path_segment->text.afterLast == '/') {
-            rb_str_cat(data->path, path_segment->text.first, 
-              path_segment->text.afterLast - path_segment->text.first + 1);
-          } else {
-            rb_str_cat(data->path, path_segment->text.first, 
-              path_segment->text.afterLast - path_segment->text.first);
-          }
+          rb_str_cat(data->path, path_segment->text.first, 
+            path_segment->text.afterLast - path_segment->text.first + 
+              (*path_segment->text.afterLast == '/')); /* check if there is a slash to add */
           path_segment = path_segment->next;
         } while(path_segment);
       } else {
