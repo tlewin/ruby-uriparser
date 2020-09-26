@@ -1,5 +1,10 @@
 # History
 
+## v0.2.0
+- Fix `URI.parse` typo
+- Add rubocop
+- Add CI
+
 ## v0.1.3
 - Add _to_s_ method for URI class
 
