@@ -46,7 +46,7 @@ typedef char bool;
       rb_gc_mark(old);                                            \
                                                                   \
       return data->attribute;                                     \
-    } 
+    }
 
 #define RB_URIPARSER_ATTR_ACCESSOR(attribute, original)           \
     RB_URIPARSER_ATTR_READER(attribute, original);                \
@@ -55,7 +55,7 @@ typedef char bool;
 #define VALID_TYPE(v) (!(NIL_P(v) || RB_TYPE_P(v, T_UNDEF)))
 
 /* Parser structure reused across requests */
-static UriParserStateA uri_parse_state; 
+static UriParserStateA uri_parse_state;
 static VALUE rb_mUriParser;
 static VALUE rb_cUri_Class;
 
@@ -83,17 +83,17 @@ static void
 rb_uriparser_mark(void *p)
 {
   struct uri_data *ptr = p;
-  
+
   if (ptr) {
     reset_fields(ptr);
   }
 }
 
-static void 
+static void
 rb_uriparser_free(void *p)
 {
   struct uri_data *ptr = p;
-  
+
   if(ptr) {
     free_uri(ptr->uri);
     xfree(ptr);
@@ -138,12 +138,12 @@ rb_uriparser_s_parse(VALUE klass, VALUE uri_obj)
   if(parse_uri(str_uri, uri) != URI_SUCCESS) {
     rb_raise(rb_eStandardError, "unable to parse the URI: %s", str_uri);
   }
-  
+
   return generic_uri;
 }
 
 static VALUE
-rb_uriparser_initialize(VALUE self) 
+rb_uriparser_initialize(VALUE self)
 {
   return self;
 }
@@ -169,9 +169,9 @@ rb_uriparser_get_path(VALUE self)
         /* starts with slash */
         UriPathSegmentA *path_segment = data->uri->pathHead;
         data->path = rb_str_new("/", 1);
-        do { /* go through the linked list */ 
-          rb_str_cat(data->path, path_segment->text.first, 
-            path_segment->text.afterLast - path_segment->text.first + 
+        do { /* go through the linked list */
+          rb_str_cat(data->path, path_segment->text.first,
+            path_segment->text.afterLast - path_segment->text.first +
               (*path_segment->text.afterLast == '/')); /* check if there is a slash to add */
           path_segment = path_segment->next;
         } while(path_segment);
@@ -191,16 +191,16 @@ static VALUE
 rb_uriparser_normalize_bang(VALUE self)
 {
   struct uri_data *data;
-  
+
   Data_Get_Struct(self, struct uri_data, data);
   update_uri(self);
-  
+
   if(uriNormalizeSyntaxA(data->uri) != URI_SUCCESS) {
     rb_raise(rb_eStandardError, "unable to normalize the URI");
-  } 
+  }
   /* Invalidate any previous field value */
   reset_fields(data);
-  
+
   return self;
 }
 
@@ -223,7 +223,7 @@ rb_uriparser_to_s(VALUE self)
   char *str_uri;
   UriUriA *uri = update_uri(self);
   VALUE obj_str_uri;
-  
+
   if(uriToStringCharsRequiredA(uri, &chars_required) != URI_SUCCESS ||
       !(str_uri = ALLOC_N(char, ++chars_required)) ||
       uriToStringA(str_uri, uri, chars_required, NULL) != URI_SUCCESS) {
@@ -236,34 +236,34 @@ rb_uriparser_to_s(VALUE self)
 }
 
 static void
-reset_fields(struct uri_data *data) 
+reset_fields(struct uri_data *data)
 {
   data->updated = FALSE;
-  
+
   rb_gc_mark(data->scheme);
   data->scheme = Qundef;
-  
+
   rb_gc_mark(data->userinfo);
   data->userinfo = Qundef;
 
   rb_gc_mark(data->host);
   data->host = Qundef;
-  
+
   rb_gc_mark(data->str_port);
   data->str_port = Qundef;
-  
+
   rb_gc_mark(data->path);
   data->path = Qundef;
-  
+
   rb_gc_mark(data->query);
   data->query = Qundef;
-  
+
   rb_gc_mark(data->fragment);
   data->fragment = Qundef;
 }
 
 static void
-populate_fields(VALUE uri) 
+populate_fields(VALUE uri)
 {
   rb_uriparser_get_scheme(uri);
   rb_uriparser_get_userinfo(uri);
@@ -275,7 +275,7 @@ populate_fields(VALUE uri)
 }
 
 static VALUE
-compose_uri_from_data(struct uri_data *data) 
+compose_uri_from_data(struct uri_data *data)
 {
   VALUE str_uri = rb_str_new2("");
 
@@ -316,14 +316,14 @@ compose_uri_from_data(struct uri_data *data)
 }
 
 static int
-parse_uri(const char *str_uri, UriUriA *uri) 
+parse_uri(const char *str_uri, UriUriA *uri)
 {
   uri_parse_state.uri = uri;
-  
+
   return uriParseUriA(&uri_parse_state, str_uri);
 }
 
-static void 
+static void
 free_uri(UriUriA *uri)
 {
   if(uri) {
@@ -341,7 +341,7 @@ update_uri(VALUE uri_obj)
   if(!data->uri || data->updated) {
     VALUE new_uri;
     UriUriA *uri = ALLOC(UriUriA);
-    
+
     if(data->updated) {
       populate_fields(uri_obj);
     }
@@ -368,7 +368,7 @@ Init_uriparser_ext()
 {
   rb_mUriParser = rb_define_module("UriParser");
   rb_cUri_Class = rb_define_class_under(rb_mUriParser, "URI", rb_cObject);
-  
+
   rb_define_alloc_func(rb_cUri_Class, rb_uriparser_s_allocate);
   rb_define_method(rb_cUri_Class, "initialize", rb_uriparser_initialize, 0);
   rb_define_method(rb_cUri_Class, "scheme", rb_uriparser_get_scheme, 0);
