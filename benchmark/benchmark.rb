@@ -23,7 +23,7 @@ Benchmark.bmbm(12) do |x|
   end
 end
 
-puts "\n" + '#' * 20 + "\n"
+puts "\n#{'#' * 20}\n"
 
 Benchmark.bmbm(12) do |x|
   puts 'Simple URLs'
