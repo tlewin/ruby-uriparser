@@ -5,7 +5,7 @@ require 'uriparser'
 
 # wrapper the ruby URI class
 module URI #:nodoc: all
-  def self.parser(uri)
+  def self.parse(uri)
     UriParser.parse(uri)
   end
 end
