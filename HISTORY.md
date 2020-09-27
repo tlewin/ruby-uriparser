@@ -1,5 +1,8 @@
 # History
 
+## HEAD
+- Utilize URI exceptions instead of bare ruby exceptions.
+
 ## v0.2.0
 - Fix `URI.parse` typo
 - Add rubocop

@@ -22,7 +22,7 @@ class UriParserTest < Minitest::Test # rubocop:disable Metrics/ClassLength
 
   context 'URI parsing' do
     should 'raise an exception if was unable to parse the URI' do
-      assert_raises(StandardError) { UriParser.parse('invalid uri') }
+      assert_raises(URI::InvalidURIError) { UriParser.parse('invalid uri') }
     end
 
     should 'parse valid URI' do

@@ -62,6 +62,8 @@ typedef char bool;
 static UriParserStateA uri_parse_state;
 static VALUE rb_mUriParser;
 static VALUE rb_cUri_Class;
+static VALUE rb_eError;
+static VALUE rb_eUriInvalidURIError;
 
 struct uri_data {
     UriUriA *uri; /* Parsed URI data */
@@ -141,7 +143,7 @@ rb_uriparser_s_parse(VALUE klass, VALUE uri_obj)
     data->uri = uri;
 
     if( parse_uri(str_uri, uri) != URI_SUCCESS ) {
-        rb_raise(rb_eStandardError, "unable to parse the URI: %s", str_uri);
+        rb_raise(rb_eUriInvalidURIError, "unable to parse the URI: %s", str_uri);
     }
 
     return generic_uri;
@@ -206,7 +208,7 @@ rb_uriparser_normalize_bang(VALUE self)
     update_uri(self);
 
     if( uriNormalizeSyntaxA(data->uri) != URI_SUCCESS ) {
-        rb_raise(rb_eStandardError, "unable to normalize the URI");
+        rb_raise(rb_eError, "unable to normalize the URI");
     }
     /* Invalidate any previous field value */
     reset_fields(data);
@@ -239,7 +241,7 @@ rb_uriparser_to_s(VALUE self)
         || !(str_uri = ALLOC_N(char, ++chars_required))
         || uriToStringA(str_uri, uri, chars_required, NULL) != URI_SUCCESS
     ) {
-        rb_raise(rb_eStandardError, "unable to convert to string");
+        rb_raise(rb_eError, "unable to convert to string");
     }
 
     obj_str_uri = rb_str_new2(str_uri);
@@ -363,7 +365,7 @@ update_uri(VALUE uri_obj)
         if( parse_uri(StringValueCStr(new_uri), uri) != URI_SUCCESS ) {
             free_uri(uri);
             rb_gc_mark(new_uri);
-            rb_raise(rb_eStandardError, "invalid URI (%s) to normalize", StringValueCStr(new_uri));
+            rb_raise(rb_eUriInvalidURIError, "invalid URI (%s) to normalize", StringValueCStr(new_uri));
         }
 
         free_uri(data->uri);
@@ -379,6 +381,9 @@ Init_uriparser_ext()
 {
     rb_mUriParser = rb_define_module("UriParser");
     rb_cUri_Class = rb_define_class_under(rb_mUriParser, "URI", rb_cObject);
+    /* NOTE: Reuse URI exceptions */
+    rb_eError = rb_path2class("URI::Error");
+    rb_eUriInvalidURIError = rb_path2class("URI::InvalidURIError");
 
     rb_define_alloc_func(rb_cUri_Class, rb_uriparser_s_allocate);
     rb_define_method(rb_cUri_Class, "initialize", rb_uriparser_initialize, 0);
