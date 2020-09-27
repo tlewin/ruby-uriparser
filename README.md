@@ -10,29 +10,46 @@ It is a fairly reasonable hypothesis to consider that __all__ Ruby Rack applicat
 
 ## Usage
 
-    require 'uriparser'
+```ruby
+require 'uriparser'
 
-    UriParser.parse('https://localhost:9000/path/?a=1#x') # return UriParser::URI object
+UriParser.parse('https://localhost:9000/path/?a=1#x') # return UriParser::URI object
+```
 
 If you want to override the URI class just include the following line in your code:
 
-    # Will override URI#parse and Kernel#URI methods
-    require 'uriparser/uri_gem'
+```ruby
+# Will override URI#parse and Kernel#URI methods
+require 'uriparser/uri_gem'
+```
 
 ## Benchmark
 
-The following numbers were computed for 100,000 `URI.parse` calls using the ruby benchmark library in a Mac OS X (10.8.5)/ 2.9Ghz Intel Core I5/ 8GB 1600 MHz DDR3 machine:
+The following numbers were computed for 100,000 `URI.parse` calls using the Ruby 2.6 benchmark library in a Mac OS X (10.15.6)/ 2,7 GHz Dual-Core Intel Core i5/ 16 GB 1867 MHz DDR3:
 
+    # Complex URLs
     Rehearsal ------------------------------------------------
-    URI            0.750000   0.000000   0.750000 (  0.750619)
-    UriParser      0.110000   0.010000   0.120000 (  0.111885)
-    Addressable    1.880000   0.000000   1.880000 (  1.886091)
-    --------------------------------------- total: 2.750000sec
+    URI            1.139526   0.007341   1.146867 (  1.189431)
+    UriParser      0.148833   0.008094   0.156927 (  0.163185)
+    Addressable    2.096471   0.008317   2.104788 (  2.152700)
+    --------------------------------------- total: 3.408582sec
 
-                       user     system      total        real
-    URI            0.730000   0.000000   0.730000 (  0.728169)
-    UriParser      0.110000   0.000000   0.110000 (  0.107235)
-    Addressable    1.870000   0.000000   1.870000 (  1.863334)
+                    user     system      total        real
+    URI            1.131435   0.007336   1.138771 (  1.215291)
+    UriParser      0.202037   0.005046   0.207083 (  0.259723)
+    Addressable    2.393879   0.019947   2.413826 (  2.676498)
+
+    # Simple URLs
+    Rehearsal ------------------------------------------------
+    URI            0.623932   0.002970   0.626902 (  0.641151)
+    UriParser      0.145798   0.005798   0.151596 (  0.162660)
+    Addressable    2.222884   0.025276   2.248160 (  2.511593)
+    --------------------------------------- total: 3.026658sec
+
+                    user     system      total        real
+    URI            0.702562   0.007480   0.710042 (  0.763542)
+    UriParser      0.153022   0.004182   0.157204 (  0.170975)
+    Addressable    1.879151   0.008923   1.888074 (  1.958248)
 
 ## Installation
 
