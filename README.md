@@ -1,6 +1,6 @@
 # ruby-uriparser
 
-[![Gem Version](https://badge.fury.io/rb/ruby-uriparser.png)](http://badge.fury.io/rb/ruby-uriparser)
+[![Gem Version](https://badge.fury.io/rb/ruby-uriparser.svg)](https://badge.fury.io/rb/ruby-uriparser)
 [![Build Status](https://travis-ci.org/tlewin/ruby-uriparser.svg?branch=master)](https://travis-ci.org/tlewin/ruby-uriparser)
 [![Ruby Style Guide](https://img.shields.io/badge/code_style-rubocop-brightgreen.svg)](https://github.com/rubocop-hq/rubocop)
 
