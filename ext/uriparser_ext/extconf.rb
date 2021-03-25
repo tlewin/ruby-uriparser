@@ -3,6 +3,6 @@
 require 'mkmf'
 require 'rbconfig'
 
-abort "-----\nERROR: You need to install uriparser lib.\n-----" unless have_library('uriparser')
+have_library('uriparser') || abort("-----\nERROR: You need to install uriparser lib.\n-----")
 
 create_makefile 'uriparser_ext'
