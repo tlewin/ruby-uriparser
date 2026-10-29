@@ -1,10 +1,8 @@
-#include <stdio.h>
 #include <ruby.h>
 #include <uriparser/Uri.h>
 
-#define FALSE 0
-#define TRUE 1
-typedef char bool;
+#include <stdbool.h>
+#include <stddef.h>
 
 #define URI_TEXT_RANGE(uri_ptr, uri_field) \
     ((uri_ptr->uri_field.afterLast == uri_ptr->uri_field.first) ? \
@@ -18,7 +16,7 @@ typedef char bool;
         struct uri_data *data;                                          \
                                                                         \
         /* lazy load */                                                 \
-        Data_Get_Struct(self, struct uri_data, data);                   \
+        data = rb_check_typeddata(self, &rb_uriparser_type);            \
         if(RB_TYPE_P(data->attribute, T_UNDEF)) {                       \
             if(data->uri) {                                             \
                 data->attribute = URI_TEXT_RANGE(data->uri, original);  \
@@ -38,7 +36,7 @@ typedef char bool;
         VALUE old;                                              \
         struct uri_data *data;                                  \
                                                                 \
-        Data_Get_Struct(self, struct uri_data, data);           \
+        data = rb_check_typeddata(self, &rb_uriparser_type);    \
         old = data->attribute;                                  \
         if(NIL_P(attribute)) {                                  \
             data->attribute = Qnil;                             \
@@ -46,7 +44,7 @@ typedef char bool;
         else {                                                  \
             data->attribute = StringValue(attribute);           \
         }                                                       \
-        data->updated = TRUE;                                   \
+        data->updated = true;                                   \
         rb_gc_mark(old);                                        \
                                                                 \
         return data->attribute;                                 \
@@ -106,6 +104,17 @@ rb_uriparser_free(void *p)
     }
 }
 
+static size_t rb_uriparser_size(const void *p) {
+  (void)p;
+  return sizeof(struct uri_data);
+}
+
+static const rb_data_type_t rb_uriparser_type = {
+    .wrap_struct_name = "uriparser",
+    .function = {.dfree = rb_uriparser_free,
+                 .dmark = rb_uriparser_mark,
+                 .dsize = rb_uriparser_size}};
+
 static VALUE
 rb_uriparser_s_allocate(VALUE klass)
 {
@@ -113,7 +122,7 @@ rb_uriparser_s_allocate(VALUE klass)
 
     if( data ) {
         data->uri       = NULL;
-        data->updated   = FALSE;
+        data->updated   = false;
         data->scheme    = Qundef;
         data->userinfo  = Qundef;
         data->host      = Qundef;
@@ -126,19 +135,20 @@ rb_uriparser_s_allocate(VALUE klass)
         rb_raise(rb_eRuntimeError, "unable to create UriParser::URI class");
     }
 
-    return Data_Wrap_Struct(klass, rb_uriparser_mark, rb_uriparser_free, data);
+    return rb_data_typed_object_wrap(klass, data, &rb_uriparser_type);
 }
 
 static VALUE
 rb_uriparser_s_parse(VALUE klass, VALUE uri_obj)
 {
+    (void)klass;
     char *str_uri = StringValueCStr(uri_obj);
     UriUriA *uri = ALLOC(UriUriA);
     struct uri_data *data;
     VALUE generic_uri;
 
     generic_uri = rb_class_new_instance(0, NULL, rb_cUri_Class);
-    Data_Get_Struct(generic_uri, struct uri_data, data);
+    data = rb_check_typeddata(generic_uri, &rb_uriparser_type);
 
     data->uri = uri;
 
@@ -169,7 +179,7 @@ rb_uriparser_get_path(VALUE self)
     struct uri_data *data;
 
     /* lazy load */
-    Data_Get_Struct(self, struct uri_data, data);
+    data = rb_check_typeddata(self, &rb_uriparser_type);
     if( RB_TYPE_P(data->path, T_UNDEF) ) {
         if( data->uri ) {
             if( data->uri->pathHead ) {
@@ -204,7 +214,7 @@ rb_uriparser_normalize_bang(VALUE self)
 {
     struct uri_data *data;
 
-    Data_Get_Struct(self, struct uri_data, data);
+    data = rb_check_typeddata(self, &rb_uriparser_type);
     update_uri(self);
 
     if( uriNormalizeSyntaxA(data->uri) != URI_SUCCESS ) {
@@ -219,12 +229,14 @@ rb_uriparser_normalize_bang(VALUE self)
 static VALUE
 rb_uriparser_escape(VALUE self)
 {
+    (void)self;
     return Qnil;
 }
 
 static VALUE
 rb_uriparser_unescape(VALUE self)
 {
+    (void)self;
     return Qnil;
 }
 
@@ -252,7 +264,7 @@ rb_uriparser_to_s(VALUE self)
 static void
 reset_fields(struct uri_data *data)
 {
-    data->updated = FALSE;
+    data->updated = false;
 
     rb_gc_mark(data->scheme);
     data->scheme = Qundef;
@@ -351,7 +363,7 @@ update_uri(VALUE uri_obj)
 {
     struct uri_data *data;
 
-    Data_Get_Struct(uri_obj, struct uri_data, data);
+    data = rb_check_typeddata(uri_obj, &rb_uriparser_type);
     if( !data->uri || data->updated ) {
         VALUE new_uri;
         UriUriA *uri = ALLOC(UriUriA);
@@ -380,6 +392,7 @@ void
 Init_uriparser_ext()
 {
     rb_mUriParser = rb_define_module("UriParser");
+    rb_require("uri");
     rb_cUri_Class = rb_define_class_under(rb_mUriParser, "URI", rb_cObject);
     /* NOTE: Reuse URI exceptions */
     rb_eError = rb_path2class("URI::Error");

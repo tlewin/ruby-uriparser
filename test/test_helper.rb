@@ -4,7 +4,8 @@ require 'minitest/autorun'
 require 'shoulda/context'
 require 'shoulda/matchers'
 
-require './lib/uriparser'
+$LOAD_PATH.unshift File.expand_path('../lib', __dir__)
+require 'uriparser'
 
 Shoulda::Matchers.configure do |config|
   config.integrate do |with|
